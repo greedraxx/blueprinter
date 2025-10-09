@@ -14,20 +14,30 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LanguageSelector } from "@/components/language-selector"
 import { useLanguage } from "@/lib/language-context"
+import { useAuth } from "@/lib/auth-context"
+import { toast } from "@/components/ui/use-toast"
 import Image from "next/image"
 
 export function DashboardHeader() {
   const { t } = useLanguage()
   const router = useRouter()
+  const { user, signOut } = useAuth()
 
-  const handleLogout = () => {
-    // Clear any auth data from localStorage/sessionStorage
-    if (typeof window !== 'undefined') {
-      localStorage.clear()
-      sessionStorage.clear()
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      toast({
+        title: "Success",
+        description: "Successfully logged out!",
+      })
+      router.push('/login')
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign out",
+        variant: "destructive",
+      })
     }
-    // Redirect to login page
-    router.push('/login')
   }
 
   return (
@@ -36,11 +46,11 @@ export function DashboardHeader() {
         <div className="flex items-center gap-12">
           <Link href="/dashboard" className="flex items-center">
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%EC%A0%9C%EB%AA%A9%EC%9D%84%20%EC%9E%85%EB%A0%A5%ED%95%B4%EC%A3%BC%EC%84%B8%EC%9A%94.%20%282%29-AmRyZV3kECzAVT7EZbVDicXl5mxZp4.png"
+              src="/logo.png"
               alt="BLUE PRINTER"
-              width={800}
-              height={171}
-              className="h-20 w-auto brightness-0 invert"
+              width={200}
+              height={50}
+              className="h-12 w-auto"
               priority
             />
           </Link>
@@ -67,9 +77,13 @@ export function DashboardHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-2 hover:bg-white/10 text-white">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-white text-[#0066FF] text-xs font-bold">JD</AvatarFallback>
+                  <AvatarFallback className="bg-white text-[#0066FF] text-xs font-bold">
+                    {user?.email?.slice(0, 2).toUpperCase() || 'JD'}
+                  </AvatarFallback>
                 </Avatar>
-                <span className="hidden sm:inline text-sm font-medium">John Doe</span>
+                <span className="hidden sm:inline text-sm font-medium">
+                  {user?.email?.split('@')[0] || 'User'}
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">

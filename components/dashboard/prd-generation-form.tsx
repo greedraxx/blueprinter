@@ -176,6 +176,7 @@ export function PrdGenerationForm() {
                 <SelectValue placeholder="Select model" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">None (Free/Personal)</SelectItem>
                 <SelectItem value="subscription">Subscription</SelectItem>
                 <SelectItem value="ads">Advertisements</SelectItem>
                 <SelectItem value="in-app">In-app Purchases</SelectItem>

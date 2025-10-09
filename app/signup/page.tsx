@@ -1,8 +1,37 @@
+'use client'
+
 import { SignupForm } from "@/components/auth/signup-form"
 import Link from "next/link"
 import Image from "next/image"
+import { useAuth } from "@/lib/auth-context"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 export default function SignupPage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (user && !loading) {
+      router.push('/dashboard')
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (user) {
+    return null
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-8">
@@ -18,8 +47,8 @@ export default function SignupPage() {
               />
             </div>
           </Link>
-          <h1 className="text-3xl font-bold tracking-tight">Create your account</h1>
-          <p className="text-muted-foreground">Start generating professional PRDs in minutes</p>
+          <h1 className="text-3xl font-bold tracking-tight">Create account</h1>
+          <p className="text-muted-foreground">Sign up for your BLUE PRINTER account</p>
         </div>
 
         <SignupForm />

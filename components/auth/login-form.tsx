@@ -9,37 +9,61 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Github, Mail } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
+import { toast } from "@/components/ui/use-toast"
 
 export function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { signIn, signInWithGoogle } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setTimeout(() => {
-      localStorage.setItem("isAuthenticated", "true")
-      localStorage.setItem("userEmail", email)
+    
+    try {
+      await signIn(email, password)
       router.push("/dashboard")
-    }, 1000)
+      toast({
+        title: "Success",
+        description: "Successfully logged in!",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign in",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleSocialLogin = (provider: string) => {
-    localStorage.setItem("isAuthenticated", "true")
-    localStorage.setItem("userEmail", `user@${provider}.com`)
-    router.push("/dashboard")
+  const handleGoogleLogin = async () => {
+    setIsLoading(true)
+    try {
+      await signInWithGoogle()
+      // Google OAuth는 리다이렉트되므로 여기서는 처리하지 않음
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign in with Google",
+        variant: "destructive",
+      })
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <Button variant="outline" className="w-full gap-2 bg-transparent" onClick={() => handleSocialLogin("google")}>
+        <Button variant="outline" className="w-full gap-2 bg-transparent" onClick={handleGoogleLogin} disabled={isLoading}>
           <Mail className="h-4 w-4" />
           Continue with Google
         </Button>
-        <Button variant="outline" className="w-full gap-2 bg-transparent" onClick={() => handleSocialLogin("github")}>
+        <Button variant="outline" className="w-full gap-2 bg-transparent" disabled={isLoading}>
           <Github className="h-4 w-4" />
           Continue with GitHub
         </Button>
