@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -16,12 +17,24 @@ import { LanguageSelector } from "@/components/language-selector"
 import { useLanguage } from "@/lib/language-context"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "@/components/ui/use-toast"
+import { getUserCredits } from "@/lib/credits"
 import Image from "next/image"
 
 export function DashboardHeader() {
   const { t } = useLanguage()
   const router = useRouter()
   const { user, signOut } = useAuth()
+  const [userCredits, setUserCredits] = useState<number | null>(null)
+  const [isLoadingCredits, setIsLoadingCredits] = useState(true)
+
+  useEffect(() => {
+    if (user?.id) {
+      getUserCredits(user.id)
+        .then((uc) => setUserCredits(uc?.credits ?? 0))
+        .catch(() => setUserCredits(0))
+        .finally(() => setIsLoadingCredits(false))
+    }
+  }, [user?.id])
 
   const handleLogout = async () => {
     try {
@@ -66,9 +79,11 @@ export function DashboardHeader() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 rounded-full bg-white px-6 py-3">
-            <CreditCard className="h-6 w-6 text-[#0066FF]" />
-            <span className="text-xl font-bold text-black">10 {t("dashboard.credits")}</span>
+          <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2">
+            <CreditCard className="h-5 w-5 text-[#0066FF]" />
+            <span className="font-bold text-black">
+              {isLoadingCredits ? "..." : userCredits ?? 0} {t("dashboard.credits")}
+            </span>
           </div>
 
           <LanguageSelector />

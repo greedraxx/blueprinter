@@ -18,6 +18,7 @@ export default function AuthCallback() {
         // Check for auth callback parameters
         const code = searchParams.get('code')
         const next = searchParams.get('next') || '/dashboard'
+        const isNewUser = searchParams.get('is_new_user') === 'true'
         
         if (code) {
           // Exchange code for session
@@ -26,6 +27,14 @@ export default function AuthCallback() {
           if (error) throw error
           
           if (data.session) {
+            // 새 사용자에게는 트리거로 10 크레딧이 자동 지급됩니다 (Supabase)
+            if (isNewUser) {
+              toast({
+                title: "Welcome!",
+                description: "가입 보너스로 10 크레딧이 지급되었습니다.",
+              })
+            }
+            
             toast({
               title: "Success",
               description: "Successfully logged in!",

@@ -19,6 +19,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const origin = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001')
 
   useEffect(() => {
     // Get initial session
@@ -47,6 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${origin}/auth/callback?is_new_user=true`
+      }
     })
     if (error) throw error
   }
@@ -55,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'http://localhost:3002/auth/callback'
+        redirectTo: `${origin}/auth/callback?is_new_user=true`
       }
     })
     if (error) throw error

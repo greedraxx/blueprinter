@@ -1,10 +1,20 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { NextRequest, NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
+import { deductCredits, savePrdGeneration } from "@/lib/credits"
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    }
+
     const body = await request.json()
     const { title, idea, platform, targetAudience, coreFeatures, monetization } = body
 
@@ -134,6 +144,17 @@ PRD를 포괄적이고, 전문적이며, 실행 가능하게 작성하세요. �
     const resultKo = await model.generateContent(promptKo)
     const contentKo = resultKo.response.text()
 
+    // Deduct 1 credit for PRD generation
+    try {
+      await deductCredits(user.id, 1, "PRD Generation")
+    } catch (creditError) {
+      console.error("Credit deduction failed:", creditError)
+      return NextResponse.json(
+        { error: "Insufficient credits. Please purchase more credits to continue." },
+        { status: 402 }
+      )
+    }
+
     // Create PRD object
     const prd = {
       id: Date.now().toString(),
@@ -146,6 +167,28 @@ PRD를 포괄적이고, 전문적이며, 실행 가능하게 작성하세요. �
       contentEn,
       contentKo,
       createdAt: new Date().toISOString(),
+      userId: user.id, // Associate PRD with user
+    }
+
+    // Save generation log to Supabase (credits_used = 1)
+    try {
+      await savePrdGeneration(
+        user.id,
+        title,
+        idea || null,
+        {
+          contentEn,
+          contentKo,
+          platform: platform || null,
+          targetAudience: targetAudience || null,
+          coreFeatures: coreFeatures || null,
+          monetization: monetization || null,
+        },
+        1
+      )
+    } catch (logError) {
+      console.error("Failed to log PRD generation:", logError)
+      // continue without blocking user; credits already deducted
     }
 
     return NextResponse.json({ success: true, prd })
