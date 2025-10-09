@@ -12,6 +12,9 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        // Initialize Supabase client
+        const supabase = createClient()
+        
         // Check for auth callback parameters
         const code = searchParams.get('code')
         const next = searchParams.get('next') || '/dashboard'
