@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getUserCreditsSummary } from '@/lib/credits';
-import { UserCredits } from '@/types/credits';
+import { UserCreditsSummary } from '@/types/credits';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Coins, TrendingUp, TrendingDown } from 'lucide-react';
@@ -14,7 +14,7 @@ interface CreditDisplayProps {
 
 export function CreditDisplay({ onPurchaseClick }: CreditDisplayProps) {
   const { user } = useAuth();
-  const [credits, setCredits] = useState<UserCredits | null>(null);
+  const [credits, setCredits] = useState<UserCreditsSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -83,11 +83,14 @@ export function CreditDisplay({ onPurchaseClick }: CreditDisplayProps) {
           </div>
           <Button
             onClick={onPurchaseClick}
-            variant={isNoCredits ? "default" : "outline"}
-            size="sm"
-            className={isNoCredits ? "bg-green-600 hover:bg-green-700" : ""}
+            size="lg"
+            className={
+              isNoCredits
+                ? "bg-green-600 hover:bg-green-700 text-white rounded-full h-12 px-6 font-bold"
+                : "bg-black hover:bg-black/90 text-white rounded-full h-12 px-6 font-bold"
+            }
           >
-            {isNoCredits ? 'Buy Credits' : 'Add More'}
+            BUY CREDIT
           </Button>
         </div>
 

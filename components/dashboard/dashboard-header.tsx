@@ -79,12 +79,16 @@ export function DashboardHeader() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2">
+          <Link
+            href="/dashboard/credits"
+            className="flex items-center gap-2 rounded-full bg-white px-4 py-2 hover:shadow-md cursor-pointer"
+            aria-label="Buy credits"
+          >
             <CreditCard className="h-5 w-5 text-[#0066FF]" />
             <span className="font-bold text-black">
               {isLoadingCredits ? "..." : userCredits ?? 0} {t("dashboard.credits")}
             </span>
-          </div>
+          </Link>
 
           <LanguageSelector />
 

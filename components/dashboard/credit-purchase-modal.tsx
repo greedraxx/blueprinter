@@ -1,14 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Coins, Check, Loader2 } from 'lucide-react';
-import { purchaseCreditPackage, addCredits } from '@/lib/credits';
+import { CREDIT_PACKAGES } from '@/lib/credits';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/components/ui/use-toast';
-import { CREDIT_PACKAGES } from '@/lib/credits';
+
+function getOrigin() {
+  if (typeof window !== 'undefined') {
+    return window.location.origin
+  }
+  const port = process.env.PORT || 3000
+  const host = process.env.NEXT_PUBLIC_SITE_URL || `http://localhost:${port}`
+  return host
+}
 
 interface CreditPurchaseModalProps {
   open: boolean;
@@ -20,6 +28,44 @@ export function CreditPurchaseModal({ open, onOpenChange, onPurchaseComplete }: 
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
+  const [widgets, setWidgets] = useState<any>(null)
+
+  // 선택된 패키지에 맞춰 v2 결제위젯 렌더링
+  useEffect(() => {
+    const setup = async () => {
+      if (!open || selectedPackage === null) return
+      const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
+      if (!clientKey) return
+      const pkg = CREDIT_PACKAGES[selectedPackage]
+
+      await loadTossWidget()
+      const anyWindow = window as any
+      if (!anyWindow.TossPayments) {
+        toast({ title: '결제 위젯 로딩 실패', description: 'v2 SDK를 불러오지 못했습니다.', variant: 'destructive' })
+        return
+      }
+
+      const customerKey = user?.id || 'ANONYMOUS'
+      const tossPayments = anyWindow.TossPayments(clientKey)
+      // v2 위젯 인스턴스 생성 (amount는 setAmount로 설정)
+      const w = tossPayments.widgets({ customerKey })
+      try {
+        await w.setAmount(pkg.price)
+        // 결제 수단 UI 렌더 (금액은 setAmount로 이미 설정됨)
+        await w.renderPaymentMethods('#toss-payment-method')
+        await w.renderAgreement('#toss-agreement')
+        setWidgets(w)
+      } catch (e) {
+        console.error('Toss widget render error', e)
+        toast({ title: '결제 UI 렌더링 오류', description: '결제 수단/약관 영역 렌더링에 실패했습니다.', variant: 'destructive' })
+      }
+    }
+    setup()
+    // 모달을 닫거나 패키지를 변경하면 위젯 상태 초기화
+    return () => {
+      setWidgets(null)
+    }
+  }, [open, selectedPackage, user?.id])
 
   const handlePurchase = async (packageIndex: number) => {
     if (!user?.id) {
@@ -35,19 +81,30 @@ export function CreditPurchaseModal({ open, onOpenChange, onPurchaseComplete }: 
     setSelectedPackage(packageIndex);
 
     try {
-      // 실제 결제는 Stripe 등으로 구현 필요
-      // 지금은 시뮬레이션으로 바로 크레딧 추가
-      const pkg = CREDIT_PACKAGES[packageIndex];
-      await addCredits(user.id, pkg.credits, `Purchased ${pkg.label}`);
+      const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
+      if (!clientKey) {
+        toast({ title: '결제 설정 오류', description: '클라이언트 키가 설정되지 않았습니다.', variant: 'destructive' })
+        return
+      }
 
-      toast({
-        title: "Success!",
-        description: `Successfully purchased ${pkg.credits} credits!`,
-      });
+      const pkg = CREDIT_PACKAGES[packageIndex]
+      const orderId = `${user.id}-${Date.now()}`
+      const orderName = pkg.label
+      const successUrl = `${getOrigin()}/dashboard/credits/success?credits=${pkg.credits}&orderName=${encodeURIComponent(orderName)}`
+      const failUrl = `${getOrigin()}/dashboard/credits/fail`
 
-      onPurchaseComplete?.();
-      onOpenChange(false);
-      setSelectedPackage(null);
+      // v2 위젯의 결제 요청은 UI 렌더링 이후에 호출
+      if (!widgets) {
+        toast({ title: '결제 준비 중', description: '결제 UI가 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.', variant: 'destructive' })
+        return
+      }
+
+      await widgets.requestPayment({
+        orderId,
+        orderName,
+        successUrl,
+        failUrl,
+      })
     } catch (error) {
       console.error('Purchase error:', error);
       toast({
@@ -154,6 +211,18 @@ export function CreditPurchaseModal({ open, onOpenChange, onPurchaseComplete }: 
                   </div>
                 </div>
 
+                {/* 결제위젯 v2 결제 UI 및 약관 영역 */}
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Payment Methods</h4>
+                    <div id="toss-payment-method" className="border rounded p-3" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Agreement</h4>
+                    <div id="toss-agreement" className="border rounded p-3" />
+                  </div>
+                </div>
+
                 <Button
                   onClick={() => handlePurchase(selectedPackage)}
                   disabled={loading}
@@ -174,7 +243,7 @@ export function CreditPurchaseModal({ open, onOpenChange, onPurchaseComplete }: 
                 </Button>
 
                 <p className="text-xs text-gray-500 text-center mt-2">
-                  * This is a demo. In production, integrate with Stripe or PayPal.
+                  * Toss Payments v2 결제위젯 연동. 결제 UI 렌더 후 결제 요청이 수행됩니다.
                 </p>
               </div>
             )}
@@ -183,4 +252,21 @@ export function CreditPurchaseModal({ open, onOpenChange, onPurchaseComplete }: 
       </DialogContent>
     </Dialog>
   );
+}
+
+async function loadTossWidget() {
+  const anyWindow = window as any
+  if (anyWindow.TossPayments) return
+  // 공식 문서 v2 표준 SDK 로드
+  await loadScript('https://js.tosspayments.com/v2/standard')
+}
+
+function loadScript(src: string) {
+  return new Promise<void>((resolve, reject) => {
+    const s = document.createElement('script')
+    s.src = src
+    s.onload = () => resolve()
+    s.onerror = () => reject(new Error('Script load error'))
+    document.head.appendChild(s)
+  })
 }

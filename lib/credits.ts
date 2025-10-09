@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
-import { UserCredits, CreditTransaction, PrdGeneration, InsufficientCreditsError, UserCreditsNotFoundError } from '@/types/credits';
+import { UserCredits, CreditTransaction, PrdGeneration, InsufficientCreditsError, UserCreditsNotFoundError, UserCreditsSummary } from '@/types/credits';
 
 // 사용자 크레딧 정보 조회
 export async function getUserCredits(userId: string): Promise<UserCredits | null> {
@@ -20,7 +20,7 @@ export async function getUserCredits(userId: string): Promise<UserCredits | null
 }
 
 // 사용자 크레딧 요약 조회
-export async function getUserCreditsSummary(userId: string) {
+export async function getUserCreditsSummary(userId: string): Promise<UserCreditsSummary | null> {
   const supabase = createClient();
   
   const { data, error } = await supabase
@@ -34,7 +34,7 @@ export async function getUserCreditsSummary(userId: string) {
     return null;
   }
   
-  return data;
+  return data as UserCreditsSummary | null;
 }
 
 // 크레딧 차감 (PRD 생성 시)

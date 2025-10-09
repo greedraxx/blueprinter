@@ -148,11 +148,11 @@ export function PrdGenerationForm() {
                 value={formData.idea}
                 onChange={(e) => handleInputChange("idea", e.target.value)}
                 required
-                minLength={250}
+                minLength={50}
                 rows={10}
                 className="bg-gray-50 border-gray-200 resize-none text-lg"
               />
-              <p className="text-base text-gray-500">Minimum 250 characters ({formData.idea.length}/250)</p>
+              <p className="text-base text-gray-500">Minimum 50 characters ({formData.idea.length}/50)</p>
             </div>
           </CardContent>
         </Card>
@@ -272,7 +272,7 @@ export function PrdGenerationForm() {
           <Button
             type="submit"
             size="lg"
-            disabled={isGenerating || formData.idea.length < 250 || userCredits === null || userCredits < 1}
+            disabled={isGenerating || formData.idea.length < 50 || userCredits === null || userCredits < 1}
             className="gap-3 bg-black hover:bg-black/90 text-white h-16 px-12 text-lg font-bold rounded-full shadow-2xl"
           >
             {isGenerating ? (
